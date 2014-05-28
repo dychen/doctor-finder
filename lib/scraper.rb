@@ -23,12 +23,10 @@ class Scraper
     so: 'name',
     pagesize: PAGE_SIZE
   }
-  #MAX_PAGE = NUM_RESULTS / PAGE_SIZE + 1
-  MAX_PAGE = 1
+  MAX_PAGE = NUM_RESULTS / PAGE_SIZE + 1
   MAX_REQUESTS = 50
 
   def initialize
-    @data = []
   end
 
   def run
@@ -38,10 +36,10 @@ class Scraper
       request.on_complete do |response|
         handle_response response
       end
+      puts "Enqueuing request for page #{i}/#{MAX_PAGE}"
       hydra.queue(request)
     end
     hydra.run
-    puts @data
   end
 
   private
@@ -68,8 +66,12 @@ class Scraper
     doctor[:name] = result.css('h2').text
     doctor[:specialty] = result.css('h3.specialty').text
     doctor[:address] = result.css('p.address').text
-    @data << doctor
+    begin
+      Doctor.create(doctor)
+    rescue Exception => e # Probably want to be more specific than this
+      puts "Doctor with name #{doctor[:name]}, specialty " +
+           "#{doctor[:specialty]}, address #{doctor[:address]} " +
+           "already found in database."
+    end
   end
 end
-
-Scraper.new.run
